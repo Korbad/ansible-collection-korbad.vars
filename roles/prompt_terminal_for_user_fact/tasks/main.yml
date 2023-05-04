@@ -1,0 +1,11 @@
+- name: Prompt for user input
+  ansible.builtin.pause:
+    prompt: "{{ managed_user_var }}"
+    echo: yes
+  register: user_input_result
+  when: (managed_user_var is defined) and (vars[managed_user_var] | default('') | length == 0)
+
+- name: Set input as fact
+  ansible.builtin.set_fact:
+    "{{ managed_user_var }}": "{{ user_input_result.user_input }}"
+  when: user_input_result is not skipped
