@@ -1,0 +1,9 @@
+---
+- name: Ensure managed git config vars exist
+  include_role:
+    name: korbad.project_management.managed_user_local_var
+  vars:
+    managed_user_local_var_name: "{{ item }}"
+  loop:
+  - git_username
+  - git_email
