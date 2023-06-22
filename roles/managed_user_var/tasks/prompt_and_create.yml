@@ -1,0 +1,13 @@
+- name: Query user for information
+  include_role:
+    name: korbad.vars.prompt_terminal_for_user_fact
+  when: 
+  - managed_user_var_value is undefined
+
+- name: Create var file
+  ansible.builtin.copy:
+    content: "{{ managed_user_var_value }}"
+    dest: "{{ managed_user_var_path }}"
+    mode: u+rw,og-rwx
+  vars:
+    managed_user_var_value: "{{ vars[managed_user_var_name] }}"
