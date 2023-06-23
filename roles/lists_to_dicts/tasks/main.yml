@@ -1,0 +1,53 @@
+- name: Transform lists into dictionaries
+  set_fact:
+    before_dict: "{{ before_dict | default({}) | combine({item['name']: dict(item | dict2items | rejectattr('key', 'equalto', 'name') | list | items2dict)}) }}"
+  loop: "{{ before }}"
+
+- name: Transform lists into dictionaries
+  set_fact:
+    after_dict: "{{ after_dict | default({}) | combine({item['name']: dict(item | dict2items | rejectattr('key', 'equalto', 'name') | list | items2dict)}) }}"
+  loop: "{{ after }}"
+
+- debug:
+    var: before_dict
+
+- debug:
+    var: after_dict
+
+- name: Calculate added and removed keys
+  set_fact:
+    added_keys: "{{ after_dict.keys() | difference(before_dict.keys()) | list }}"
+    removed_keys: "{{ before_dict.keys() | difference(after_dict.keys()) | list }}"
+
+- name: Generate the before_dict without removals and just with removals
+  set_fact:
+    before_dict_removals: "{{ before_dict | dict2items | selectattr('key', 'in', removed_keys) | items2dict }}"
+    before_dict_without_removals: "{{ before_dict | dict2items | rejectattr('key', 'in', removed_keys) | items2dict }}"
+
+- name: Generate the after_dict without removals and just with removals
+  set_fact:
+    after_dict_additions: "{{ after_dict | dict2items | selectattr('key', 'in', added_keys) | items2dict }}"
+    after_dict_without_additions: "{{ after_dict | dict2items | rejectattr('key', 'in', added_keys) | items2dict }}"
+
+- name: set fact for changed
+  set_fact:
+    changed_list: "{{ changed_list | default([]) | union([item]) }}"
+  loop: "{{ before_dict_without_removals.keys() | list }}"
+  when: after_dict_without_additions[item] != before_dict_without_removals[item]
+
+- debug:
+    var: changed_list
+
+- name: Set changed_dict
+  set_fact:
+    changed_dict: "{{ after_dict_without_additions | dict2items | selectattr('key', 'in', changed_list) | items2dict }}"
+
+- debug:
+    var: changed_dict
+
+- name: changed or added
+  set_fact:
+    changed_or_added: "{{ changed_dict | combine(after_dict_additions) }}"
+
+- debug:
+    var: changed_or_added

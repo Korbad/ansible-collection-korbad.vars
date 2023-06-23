@@ -1,0 +1,183 @@
+- set_fact:
+    before:
+    - name: oscar
+      state: dead
+    - name: billy
+      state: alive
+      original: True
+    - name: oscarcomplex
+      state: dead
+      raised:
+        born: 1920
+    - name: inchworm
+      smaples: 32
+      organge: False
+    after:
+    - name: billy
+      state: dead
+      original: True
+    - name: oscarcomplex
+      state: dead
+      raised:
+        born: 1921
+    - name: sandra
+      state: alive
+    - name: oscar
+      state: dead
+- name: Transform lists into dictionaries
+  set_fact:
+    before_dict: "{{ before_dict | default({}) | combine({item['name']: dict(item | dict2items | rejectattr('key', 'equalto', 'name') | list | items2dict)}) }}"
+  loop: "{{ before }}"
+
+- name: Transform lists into dictionaries
+  set_fact:
+    after_dict: "{{ after_dict | default({}) | combine({item['name']: dict(item | dict2items | rejectattr('key', 'equalto', 'name') | list | items2dict)}) }}"
+  loop: "{{ after }}"
+
+- debug:
+    var: before_dict
+
+- debug:
+    var: after_dict
+
+- name: Calculate removed_keys
+  set_fact:
+    removed_keys: "{{ before_dict.keys() | difference(after_dict.keys()) | list }}"
+- debug:
+    var: removed_keys
+
+- name: Calculate added_keys
+  set_fact:
+    added_keys: "{{ after_dict.keys() | difference(before_dict.keys()) | list }}"
+- debug:
+    var: added_keys
+
+- name: Generate before_dict_without_removals
+  set_fact:
+    before_dict_without_removals: "{{ before_dict | dict2items | rejectattr('key', 'in', removed_keys) | items2dict }}"
+- debug:
+    var: before_dict_without_removals
+
+- name: Generate before_dict_removals
+  set_fact:
+    before_dict_removals: "{{ before_dict | dict2items | selectattr('key', 'in', removed_keys) | items2dict }}"
+- debug:
+    var: before_dict_removals
+
+- name: Generate after_dict_without_additions
+  set_fact:
+    after_dict_without_additions: "{{ after_dict | dict2items | rejectattr('key', 'in', added_keys) | items2dict }}"
+- debug:
+    var: after_dict_without_additions
+
+- name: Generate after_dict_additions
+  set_fact:
+    after_dict_additions: "{{ after_dict | dict2items | selectattr('key', 'in', added_keys) | items2dict }}"
+- debug:
+    var: after_dict_additions
+
+- name: set fact for changed
+  set_fact:
+    changed_list: "{{ changed_list | default([]) | union([item]) }}"
+  loop: "{{ before_dict_without_removals.keys() | list }}"
+  when: after_dict_without_additions[item] != before_dict_without_removals[item]
+
+- debug:
+    var: changed_list
+
+- name: Set changed_dict
+  set_fact:
+    changed_dict: "{{ after_dict_without_additions | dict2items | selectattr('key', 'in', changed_list) | items2dict }}"
+
+- debug:
+    var: changed_dict
+
+- name: changed or added
+  set_fact:
+    changed_or_added: "{{ changed_dict | combine(after_dict_additions) }}"
+
+- debug:
+    var: changed_or_added
+# - name: changed dict
+#   set_fact:
+#     changed_dict: "{{ after_dict_without_additions[item] | dict2items | reject('==', before_dict_without_removals[item]) | items2dict }}"
+#   loop: "{{ before_dict_without_removals.keys() | list }}"
+
+# - debug:
+#     var: changed_dict
+# - set_fact:
+#      "{{ before_dict_without_removals[item] }}"
+#      "{{ after_dict_without_additions[item] }}"
+#      "{{ before_dict_without_removals[item] == after_dict_without_additions[item] }}"
+#   loop: "{{ before_dict_without_removals.keys() | list }}"
+
+# - name: Find changed dictionaries
+#   set_fact:
+#     changed_dicts: "{{ before_dict_without_removals | dict2items | rejectattr('value', 'eq', after_dict_without_additions[item.key]) | map(attribute='key') | list }}"
+#   loop: "{{ before_dict_without_removals.keys() }}"
+#   loop_control:
+#     loop_var: item
+
+# - debug:
+#     var: changed_dicts
+
+
+
+# - debug:
+#     var: added_keys
+
+# - name: Create a new 'before_dict' excluding elements that 'after_dict' doesn't have
+#   set_fact:
+#     before_dict_without_removed_top_level_dicts: "{{ before_dict | dict2items | selectattr('key', 'in', after_dict.keys()) | items2dict }}"
+
+# - debug:
+#     var: before_dict_without_removed_top_level_dicts
+
+# - name: Create a fact 'top_level_dicts_in_after_but_not_in_before'
+#   set_fact:
+#     top_level_dicts_in_after_but_not_in_before: "{{ after_dict | dict2items | selectattr('key', 'in', added_keys.keys()) | map(attribute='item') | list | items2dict }}"
+
+# - debug:
+#     var: top_level_dicts_in_after_but_not_in_before
+
+# - name: Create a fact 'after_dict_without_new_top_level_dicts'
+#   set_fact:
+#     after_dict_without_new_top_level_dicts: "{{ after_dict | dict2items | selectattr('key', 'in', before_dict.keys()) | items2dict }}"
+
+# - debug:
+#     var: after_dict_without_new_top_level_dicts
+
+# - name: Verify the top-level keys are same
+#   assert:
+#     that:
+#       - "before_dict_without_removed_top_level_dicts.keys() == after_dict_without_new_top_level_dicts.keys()"
+#     fail_msg: "The top-level keys are not the same in both dictionaries"
+#     success_msg: "The top-level keys are same in both dictionaries"
+
+# - name: Identify top-level keys with changes
+#   set_fact:
+#     changed_keys: "{{ before_dict_without_removed_top_level_dicts | dict2items | selectattr('value', '!=', after_dict_without_new_top_level_dicts[item.key]) | map(attribute='key') | list }}"
+
+# - debug:
+#     var: changed_keys
+
+
+# - name: Compare nested dictionaries with Jinja2
+#   set_fact:
+#     changed_items: "{{ lookup('template', 'compare_dicts.j2') | from_json }}"
+#   vars:
+#     before_dict: "{{ before_dict_without_removed_top_level_dicts }}"
+# - debug:
+#     var: changed_items
+
+
+
+
+# - name: Find changed keys and values
+#   set_fact:
+#     changed_items: "{{ changed_items | default({}) | combine({item: before_dict[item]}) }}"
+#   loop: "{{ before_dict.keys() }}"
+#   when: before_dict[item] is not mapping or before_dict[item] != after_dict[item]"
+
+# - debug:
+#     var: changed_items
