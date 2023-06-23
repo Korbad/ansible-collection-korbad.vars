@@ -1,0 +1,9 @@
+- name: Managed var stat {{ managed_user_var_path }}
+  stat:
+    path: "{{ managed_user_var_path }}"
+  register: managed_var_file
+
+- name: Ensure fact exists with managed var value
+  set_fact:
+    "{{ managed_user_var_name }}": "{{ lookup('file', managed_user_var_path) }}" # TODO: we want to use the file on the remote host not on the ansible controller
+  when: managed_var_file.stat.exists
