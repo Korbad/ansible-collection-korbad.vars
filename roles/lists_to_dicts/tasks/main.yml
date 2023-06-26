@@ -24,6 +24,11 @@
     before_dict_removals: "{{ before_dict | dict2items | selectattr('key', 'in', removed_keys) | items2dict }}"
     before_dict_without_removals: "{{ before_dict | dict2items | rejectattr('key', 'in', removed_keys) | items2dict }}"
 
+- name: Add 'status' absent to each dict in 'before_dict_removals'
+  set_fact:
+    before_dict_removals: "{{ before_dict_removals | default({}) | combine({item: (before_dict_removals[item] | combine({'status': 'absent'}))}) }}"
+  loop: "{{ before_dict_removals.keys() | list }}"
+
 - name: Generate the after_dict without removals and just with removals
   set_fact:
     after_dict_additions: "{{ after_dict | dict2items | selectattr('key', 'in', added_keys) | items2dict }}"
