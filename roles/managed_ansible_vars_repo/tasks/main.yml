@@ -1,7 +1,7 @@
 ---
 - name: Ensure vars repo exists locally
   include_role:
-    name: managed_git_repos
+    name: korbad.project_management.managed_git_repos
     tasks_from: single_repo.yml
     public: true
   
