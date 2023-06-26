@@ -6,7 +6,7 @@
 
 - name: Create var file if it doesn't exist
   include_tasks: prompt_and_create.yml
-  when: not managed_var_file.stat.exists or managed_var_overwrite|default(false,true)|bool
+  when: not managed_var_file.stat.exists or managed_user_var_value is defined
   
 - name: Ensure fact exists with managed var value
   set_fact:
