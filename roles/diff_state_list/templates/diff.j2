@@ -16,7 +16,6 @@
     {% endfor %}
   {% endif %}
 {% endif %}
-
 {% set added_keys = after_dict.keys() | difference(before_dict.keys()) | list %}
 {% set removed_keys = before_dict.keys() | difference(after_dict.keys()) | list %}
 {% set before_dict_removals = before_dict | dict2items | selectattr('key', 'in', removed_keys) | items2dict %}
@@ -33,8 +32,10 @@
 {% set changed_or_added = changed_dict | combine(after_dict_additions) %}
 {% set changed_or_added_list = changed_or_added.values() | list %}
 {% set removal_list = [] %}
-{% for key in removed_keys %}
-  {% set _ = removal_list.append({'name': key, 'state': 'absent'}) %}
+{% for key, value in before_dict_removals.items() %}
+  {% set value = value.copy() %}
+  {% set _ = value.update({'state': 'absent'}) %}
+  {% set _ = removal_list.append(value) %}
 {% endfor %}
 {% set all_deltas = changed_or_added_list + removal_list %}
 {{ all_deltas }}
