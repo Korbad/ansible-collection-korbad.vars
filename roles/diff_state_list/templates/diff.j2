@@ -1,13 +1,22 @@
 {% set before_dict = {} %}
-{% for item in before %}
-  {% set item_dict = dict(item.items()) %}
-  {% set _ = before_dict.update({item['name']: item_dict}) %}
-{% endfor %}
+{% if state_list_before is not none %}
+  {% if state_list_before | length > 0 %}
+    {% for item in state_list_before %}
+      {% set item_dict = dict(item.items()) %}
+      {% set _ = before_dict.update({item['name']: item_dict}) %}
+    {% endfor %}
+  {% endif %}
+{% endif %}
 {% set after_dict = {} %}
-{% for item in after %}
-  {% set item_dict = dict(item.items()) %}
-  {% set _ = after_dict.update({item['name']: item_dict}) %}
-{% endfor %}
+{% if state_list_after is not none %}
+  {% if state_list_after | length > 0 %}
+    {% for item in state_list_after %}
+      {% set item_dict = dict(item.items()) %}
+      {% set _ = after_dict.update({item['name']: item_dict}) %}
+    {% endfor %}
+  {% endif %}
+{% endif %}
+
 {% set added_keys = after_dict.keys() | difference(before_dict.keys()) | list %}
 {% set removed_keys = before_dict.keys() | difference(after_dict.keys()) | list %}
 {% set before_dict_removals = before_dict | dict2items | selectattr('key', 'in', removed_keys) | items2dict %}
