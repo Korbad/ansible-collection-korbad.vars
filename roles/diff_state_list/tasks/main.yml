@@ -1,6 +1,4 @@
 - name: Transform lists into dictionaries using a Jinja2 template
   set_fact:
     state_list_deltas: "{{ lookup('template', 'diff.j2') | from_yaml }}"
-  when:
-  - state_list_before is defined
-  - state_list_after is defined
+
